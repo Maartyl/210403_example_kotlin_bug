@@ -5,18 +5,6 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.flow
 import kotlin.coroutines.CoroutineContext
 
-fun src(): XElem? {
-  throw NotImplementedError()
-}
-
-fun ok() {
-  // Works OK
-
-  val lbb = src()
-    ?.let { { adjustingCount(it) } }
-    ?: singleAdjusterForAlwaysFalse
-}
-
 fun bad() {
   val ret = flow {
 
@@ -26,7 +14,6 @@ fun bad() {
     // Show this incorrect error in 1.4.30  (and always shown by updated IntelliJ Kotlin Plugin)
 
     val lb = currentCoroutineContext()[XElem]
-      //?.takeUnless { it === defaultXElem } //irrelevant
       ?.let { { adjustingCount(it) } }
       ?: singleAdjusterForAlwaysFalse
 
@@ -34,12 +21,20 @@ fun bad() {
   }
 }
 
-fun againOK() {
+fun ok() {
+  // This variant works
+
+  val lb = src()
+    ?.let { { adjustingCount(it) } }
+    ?: singleAdjusterForAlwaysFalse
+}
+
+fun ok2() {
   val ret = flow {
     // This variant works
 
     val lb = when (val it = currentCoroutineContext()[XElem]) {
-      null, defaultXElem -> singleAdjusterForAlwaysFalse
+      null -> singleAdjusterForAlwaysFalse
       else -> {
         { adjustingCount(it) }
       }
@@ -51,10 +46,16 @@ fun againOK() {
 
 fun main() {
   bad()
+  ok()
+  ok2()
 }
 
 
 // ---
+
+private suspend fun adjustingCount(cp: XElem) {
+  //...
+}
 
 interface XElem : CoroutineContext.Element {
   override val key: CoroutineContext.Key<*> get() = Key
@@ -62,14 +63,12 @@ interface XElem : CoroutineContext.Element {
   companion object Key : CoroutineContext.Key<XElem>
 }
 
-private val defaultXElem = object : XElem {}
+fun src(): XElem? {
+  throw NotImplementedError()
+}
 
 private typealias LBlock = suspend CoroutineScope.() -> Unit
 
 val singleAdjusterForAlwaysFalse: LBlock = {
-  //...
-}
-
-private suspend fun adjustingCount(cp: XElem) {
   //...
 }
